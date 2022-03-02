@@ -3,8 +3,8 @@
  1. Get the code:
 
     ```console
-    $ go get google.golang.org/grpc/examples/bsonCodec/bsonCodec_client
-    $ go get google.golang.org/grpc/examples/bsonCodec/bsonCodec_server
+    $ git clone git@github.com:denniskuczynski/grpc-go.git
+    $ cd grpc-go/examples/bsonCodec/bsonCodec_server
     ```
 
  2. Enable Logging
@@ -17,7 +17,7 @@
  3. Run the server:
 
     ```console
-    $ $(go env GOPATH)/bin/bsonCodec_server &
+    $ go run bsonCodec_server/main.go
     ```
 
     ```console
@@ -31,8 +31,7 @@
  4. Run the client:
 
     ```console
-    $ $(go env GOPATH)/bin/bsonCodec_client
-    Greeting: Hello world
+    $ go run bsonCodec_client/main.go
     ```
 
     ```console
