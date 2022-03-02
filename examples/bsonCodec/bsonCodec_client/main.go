@@ -40,5 +40,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not send: %v", err)
 	}
-	log.Printf("Response: %s", out)
+	log.Printf("Response1: %s", out)
+
+	in = bson.D{{"hello", "universe"}}
+	err = conn.Invoke(ctx, "/BSONCodec.Test/Send", in, &out, grpc.ForceCodec(codec.BSONCodec{}))
+	if err != nil {
+		log.Fatalf("could not send: %v", err)
+	}
+	log.Printf("Response2: %s", out)
 }

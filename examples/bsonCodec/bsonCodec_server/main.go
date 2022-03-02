@@ -17,21 +17,26 @@ var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
+// Handler of: type methodHandler func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
+// dec unmarshals data with codec and handles internal stats and logging
 func _BSON_TEST_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(bson.D)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
+	// No interceptor is defined so we will always enter this block
 	if interceptor == nil {
-		log.Printf("Received: %v", in)
+		log.Printf("Received no interceptor: %v", in)
 		return in, nil
 	}
+
+	// If we were to use interceptors...
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/BSONCodec.Test/Send",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		log.Printf("Received: %v", in)
+		log.Printf("Received via interceptor: %v", in)
 		return in, nil
 	}
 	return interceptor(ctx, in, info, handler)
