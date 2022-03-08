@@ -2,44 +2,39 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	codec "google.golang.org/grpc/examples/bsonCodec/codec"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
-// Handler of: type methodHandler func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
-// dec unmarshals data with codec and handles internal stats and logging
-func _BSON_TEST_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(bson.D)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	// No interceptor is defined so we will always enter this block
-	if interceptor == nil {
-		log.Printf("Received no interceptor: %v", in)
-		return in, nil
+func _BSON_TEST_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(bson.D)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
 
-	// If we were to use interceptors...
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/BSONCodec.Test/Send",
+	// Send once
+	fmt.Printf("Sending %v\n", m)
+	if err := stream.SendMsg(m); err != nil {
+		fmt.Printf("send error %v\n", err)
 	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		log.Printf("Received via interceptor: %v", in)
-		return in, nil
+
+	// Send twice
+	fmt.Printf("Sending again %v\n", m)
+	if err := stream.SendMsg(m); err != nil {
+		fmt.Printf("send error %v\n", err)
 	}
-	return interceptor(ctx, in, info, handler)
+
+	return nil
 }
 
 func main() {
@@ -49,17 +44,18 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer(grpc.ForceServerCodec(codec.BSONCodec{}))
-	
+
 	s.RegisterService(&grpc.ServiceDesc{
 		ServiceName: "BSONCodec.Test",
 		HandlerType: nil,
-		Methods: []grpc.MethodDesc{
+		Methods:     []grpc.MethodDesc{},
+		Streams: []grpc.StreamDesc{
 			{
-				MethodName: "Send",
-				Handler:    _BSON_TEST_Handler,
+				StreamName:    "Send",
+				Handler:       _BSON_TEST_Handler,
+				ServerStreams: true,
 			},
 		},
-		Streams:  []grpc.StreamDesc{},
 	}, nil)
 
 	log.Printf("server listening at %v", lis.Addr())

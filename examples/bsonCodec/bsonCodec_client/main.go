@@ -4,12 +4,13 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	codec "google.golang.org/grpc/examples/bsonCodec/codec"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
@@ -34,18 +35,31 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	var out bson.D
+	stream, err := conn.NewStream(ctx, &grpc.StreamDesc{
+		StreamName:    "Send",
+		ServerStreams: true,
+	}, "/BSONCodec.Test/Send", grpc.ForceCodec(codec.BSONCodec{}))
+	if err != nil {
+		log.Fatalf("could not create stream: %v", err)
+	}
+	log.Printf("Created client stream %v\n", stream)
 	in := bson.D{{"hello", "world"}}
-	err = conn.Invoke(ctx, "/BSONCodec.Test/Send", in, &out, grpc.ForceCodec(codec.BSONCodec{}))
-	if err != nil {
-		log.Fatalf("could not send: %v", err)
+	if err := stream.SendMsg(&in); err != nil {
+		log.Fatalf("could not SendMsg: %v", err)
 	}
-	log.Printf("Response1: %s", out)
-
-	in = bson.D{{"hello", "universe"}}
-	err = conn.Invoke(ctx, "/BSONCodec.Test/Send", in, &out, grpc.ForceCodec(codec.BSONCodec{}))
-	if err != nil {
-		log.Fatalf("could not send: %v", err)
+	if err := stream.CloseSend(); err != nil {
+		log.Fatalf("could not CloseSend: %v", err)
 	}
-	log.Printf("Response2: %s", out)
+	log.Printf("Sent message %v\n", in)
+	for {
+		var out bson.D
+		err := stream.RecvMsg(&out)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("could not RecvMsg: %v", err)
+		}
+		log.Printf("Response: %s", out)
+	}
 }
