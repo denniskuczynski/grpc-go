@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	codec "google.golang.org/grpc/examples/bsonCodec/codec"
+	"google.golang.org/grpc/peer"
 )
 
 var (
@@ -17,6 +18,11 @@ var (
 )
 
 func _BSON_TEST_Handler(srv interface{}, stream grpc.ServerStream) error {
+	peer, ok := peer.FromContext(stream.Context())
+	if ok {
+		fmt.Printf("Peer Addr: %v AuthInfo: %v\n", peer.Addr, peer.AuthInfo)
+	}
+
 	m := new(bson.D)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
